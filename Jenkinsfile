@@ -31,7 +31,7 @@ pipeline {
             steps {
                 echo "Sonar scanning"
                 withSonarQubeEnv('sonar_scanner') {
-                    withCredentials([string(credentialsId: 'sonar_scanner', variable: 'SONAR_TOKEN')]) {
+                    withCredentials([string(credentialsId: 'a7e196d0-968e-4f0a-ae11-eaba1e4e1240', variable: 'SONAR_TOKEN')]) {
                         sh '''
                             sonar-scanner \
                             -Dsonar.projectKey=akscluster_petclinic-jks \
