@@ -36,7 +36,7 @@ pipeline {
         stage('Sonar Scanning') {
             steps {
                 echo "Sonar scanning"
-                withSonarQubeEnv('sonar_scanner') {
+                withSonarQubeEnv('sonar') {
                     withCredentials([string(credentialsId: 'sonar-pw', variable: 'SONAR_TOKEN')]) {
                         sh '''
                             sonar-scanner \
