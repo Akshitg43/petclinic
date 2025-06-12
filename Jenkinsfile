@@ -39,7 +39,7 @@ pipeline {
                 withSonarQubeEnv('sonar') {
                     withCredentials([string(credentialsId: 'sonar-pw', variable: 'SONAR_TOKEN')]) {
                         sh '''
-                            sonar-scanner \
+                            sonar \
                             -Dsonar.projectKey=akscluster_petclinic-jks \
                             -Dsonar.sources=. \
                             -Dsonar.organization=akscluster \
