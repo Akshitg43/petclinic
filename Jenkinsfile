@@ -26,7 +26,7 @@ pipeline {
                 echo "Trivy Scanning"
                  sh '''
             mkdir -p /tmp/scan-src
-            cp -r . /tmp/scan-src
+            rsync -a --no-perms --no-owner --no-group ./ /tmp/scan-src/
             cd /tmp/scan-src
             trivy fs --format table --output trivy-report.txt --severity HIGH,CRITICAL .
             cp trivy-report.txt $WORKSPACE/
