@@ -24,14 +24,20 @@ pipeline {
         stage('File Scanning by Trivy') {
             steps {
                 echo "Trivy Scanning"
-                sh 'trivy fs --format table --output trivy-report.txt --severity HIGH,CRITICAL .'
+                 sh '''
+            mkdir -p /tmp/scan-src
+            cp -r . /tmp/scan-src
+            cd /tmp/scan-src
+            trivy fs --format table --output trivy-report.txt --severity HIGH,CRITICAL .
+            cp trivy-report.txt $WORKSPACE/
+            '''
             }
         }
         stage('Sonar Scanning') {
             steps {
                 echo "Sonar scanning"
                 withSonarQubeEnv('sonar_scanner') {
-                    withCredentials([string(credentialsId: 'a7e196d0-968e-4f0a-ae11-eaba1e4e1240', variable: 'SONAR_TOKEN')]) {
+                    withCredentials([string(credentialsId: 'sonar-pw', variable: 'SONAR_TOKEN')]) {
                         sh '''
                             sonar-scanner \
                             -Dsonar.projectKey=akscluster_petclinic-jks \
