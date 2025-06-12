@@ -40,7 +40,8 @@ pipeline {
                             -Dsonar.host.url=https://sonarcloud.io \
                             -Dsonar.login=$SONAR_TOKEN
                             -Dsonar.java.binaries =.\
-                            -Dsonar.exclusions=**/report-task.txt
+                            -Dsonar.exclusions=**/trivy-report.txt
+
                         '''
                     }
                 }
