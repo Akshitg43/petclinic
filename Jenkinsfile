@@ -32,7 +32,7 @@ pipeline {
             steps{
                 echo "Sonar scanning"
                 withSonarQubeEnv('sonar_scanner'){
-                sh 'sonar-scanner -Dsonar.projectKey=akscluster_petclinic-jks -Dsonar.sources=.
+                sh 'sonar-scanner -Dsonar.projectKey=akscluster_petclinic-jks -Dsonar.sources=.'
                 }
 
             }
