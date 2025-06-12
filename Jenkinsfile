@@ -24,30 +24,28 @@ pipeline {
         stage('File Scanning by Trivy') {
             steps {
                 echo "Trivy Scanning"
-                 sh '''
-            mkdir -p /tmp/scan-src
-            rsync -a --no-perms --no-owner --no-group ./ /tmp/scan-src/
-            cd /tmp/scan-src
-            trivy fs --format table --output trivy-report.txt --severity HIGH,CRITICAL .
-            cp trivy-report.txt $WORKSPACE/
-            '''
+                sh '''
+                    mkdir -p /tmp/scan-src
+                    rsync -a --no-perms --no-owner --no-group ./ /tmp/scan-src/
+                    cd /tmp/scan-src
+                    trivy fs --format table --output trivy-report.txt --severity HIGH,CRITICAL .
+                    cp trivy-report.txt $WORKSPACE/
+                '''
             }
         }
         stage('Sonar Scanning') {
             steps {
                 echo "Sonar scanning"
                 withSonarQubeEnv('sonar-pw') {
-                    withCredentials([string(credentialsId: 'sonar-pw', variable: 'SONAR_TOKEN')]) {
-                        sh '''
-                            sonar-scanner \
-                            -Dsonar.projectKey=akscluster_petclinic-jks \
-                            -Dsonar.sources=. \
-                            -Dsonar.organization=akscluster \
-                            -Dsonar.host.url=https://sonarcloud.io \
-                            -Dsonar.java.binaries=. \
-                            -Dsonar.exclusions=**/trivy-report.txt
-                        '''
-                    }
+                    sh '''
+                        sonar-scanner \
+                        -Dsonar.projectKey=akscluster_petclinic-jks \
+                        -Dsonar.sources=. \
+                        -Dsonar.organization=akscluster \
+                        -Dsonar.host.url=https://sonarcloud.io \
+                        -Dsonar.java.binaries=. \
+                        -Dsonar.exclusions=**/trivy-report.txt
+                    '''
                 }
             }
         }
