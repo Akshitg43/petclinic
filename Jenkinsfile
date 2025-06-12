@@ -31,9 +31,18 @@ pipeline {
         stage('sonar Scanning'){
             steps{
                 echo "Sonar scanning"
-                withSonarQubeEnv('sonar_scanner'){
-                sh 'sonar-scanner -Dsonar.projectKey=akscluster_petclinic-jks -Dsonar.sources=.'
-                }
+                withSonarQubeEnv('MySonar') {
+                    withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+                        sh '''
+                            sonar-scanner \
+                            -Dsonar.projectKey=akscluster_petclinic-jks \
+                            -Dsonar.sources=. \
+                            -Dsonar.organization=akscluster \
+                            -Dsonar.host.url=https://sonarcloud.io \
+                            -Dsonar.login=$SONAR_TOKEN
+                        '''
+    }
+
 
             }
         }
