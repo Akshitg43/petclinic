@@ -38,7 +38,6 @@ pipeline {
                             -Dsonar.sources=. \
                             -Dsonar.organization=akscluster \
                             -Dsonar.host.url=https://sonarcloud.io \
-                            -Dsonar.login=$SONAR_TOKEN
                             -Dsonar.java.binaries =.\
                             -Dsonar.exclusions=**/trivy-report.txt
 
