@@ -149,6 +149,33 @@ stage('Create & Login to AKS Cluster') {
       '''
     }
   }
+
+    
+
+}
+
+stage('Create ACR Secret in AKS') {
+  when { expression { params.RUN_STAGE == 'all' || params.RUN_STAGE == 'deploy' } }
+  steps {
+    echo "Creating ACR secret in AKS if not exists"
+    withCredentials([
+      string(credentialsId: 'AZURE_CLIENT_ID', variable: 'AZ_CLIENT_ID'),
+      string(credentialsId: 'AZURE_CLIENT_SECRET', variable: 'AZ_CLIENT_SECRET')
+    ]) {
+      sh '''
+        if ! kubectl get secret acr-auth >/dev/null 2>&1; then
+          echo "Creating acr-auth secret..."
+          kubectl create secret docker-registry acr-auth \
+            --docker-server=terraform999.azurecr.io \
+            --docker-username=$AZ_CLIENT_ID \
+            --docker-password=$AZ_CLIENT_SECRET \
+            --docker-email=you@example.com
+        else
+          echo "acr-auth secret already exists"
+        fi
+      '''
+    }
+  }
 }
 
 stage('Deploy to AKS') {
