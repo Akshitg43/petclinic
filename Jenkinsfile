@@ -5,7 +5,7 @@ pipeline {
     }
 
     parameters {
-        choice(name: 'RUN_STAGE', choices: ['all', 'build', 'test', 'sonar', 'scan', 'package', 'login', 'aks'], description: 'Which stage to run')
+        choice(name: 'RUN_STAGE', choices: ['all', 'build', 'test', 'sonar', 'scan', 'package', 'login', 'aks', 'deploy'], description: 'Which stage to run')
     }
 
     environment{
@@ -151,5 +151,50 @@ stage('Create & Login to AKS Cluster') {
   }
 }
 
+stage('Deploy to AKS') {
+  when { expression { params.RUN_STAGE == 'all' || params.RUN_STAGE == 'deploy' } }
+  steps {
+    echo "Deploying to AKS if not already deployed"
+    withCredentials([
+      string(credentialsId: 'AZURE_CLIENT_ID', variable: 'AZ_CLIENT_ID'),
+      string(credentialsId: 'AZURE_CLIENT_SECRET', variable: 'AZ_CLIENT_SECRET'),
+      string(credentialsId: 'AZURE_TENANT_ID', variable: 'AZ_TENANT_ID'),
+      string(credentialsId: 'AZURE_SUBSCRIPTION_ID', variable: 'AZ_SUBSCRIPTION_ID')
+    ]) {
+      sh '''
+        RESOURCE_GROUP="jks"
+        CLUSTER_NAME="jkspipeline"
+        ACR_NAME="terraform999"
+        IMAGE_REPO="petclinic"
+
+        echo "Logging into Azure..."
+        az login --service-principal -u $AZ_CLIENT_ID -p $AZ_CLIENT_SECRET --tenant $AZ_TENANT_ID
+        az account set --subscription $AZ_SUBSCRIPTION_ID
+
+        echo "Ensuring AKS cluster context is set..."
+        az aks get-credentials --resource-group $RESOURCE_GROUP --name $CLUSTER_NAME --overwrite-existing
+
+        echo "Checking if Kubernetes deployment 'springboot-app' exists..."
+        if kubectl get deployment springboot-app > /dev/null 2>&1; then
+          echo "Deployment 'springboot-app' already exists. Skipping deployment."
+        else
+          echo "Fetching latest image tag from ACR..."
+          IMAGE_TAG=$(az acr repository show-tags --name $ACR_NAME --repository $IMAGE_REPO --orderby time_desc --output tsv | head -n 1)
+
+          if [ -z "$IMAGE_TAG" ]; then
+            echo "ERROR: No image tags found in ACR for $IMAGE_REPO"
+            exit 1
+          fi
+
+          echo "Injecting image tag: $IMAGE_TAG"
+          sed "s|__IMAGE_TAG__|$IMAGE_TAG|g" k8s/deployment.yaml > k8s/sprinboot-deployment.yaml
+
+          echo "Deploying application to AKS..."
+          kubectl apply -f k8s/sprinboot-deployment.yaml
+        fi
+      '''
+    }
+  }
+}
         }
        }                        
