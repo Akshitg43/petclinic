@@ -119,25 +119,22 @@ stage('Create & Login to AKS Cluster') {
   steps {
     echo "Checking/Creating and Logging into AKS Cluster: jkspipeline"
     withCredentials([ 
-      string(credentialsId: 'AZURE_CLIENT_ID', variable: 'AZ_CLIENT_ID'),
-      string(credentialsId: 'AZURE_CLIENT_SECRET', variable: 'AZ_CLIENT_SECRET'),
-      string(credentialsId: 'AZURE_TENANT_ID', variable: 'AZ_TENANT_ID'),
+      string(credentialsId: 'AZURE_CLIENT_ID',       variable: 'AZ_CLIENT_ID'),
+      string(credentialsId: 'AZURE_CLIENT_SECRET',   variable: 'AZ_CLIENT_SECRET'),
+      string(credentialsId: 'AZURE_TENANT_ID',       variable: 'AZ_TENANT_ID'),
       string(credentialsId: 'AZURE_SUBSCRIPTION_ID', variable: 'AZ_SUBSCRIPTION_ID')
     ]) {
       sh '''
-        # Log in to Azure using service principal
+        # Azure login
         az login --service-principal -u $AZ_CLIENT_ID -p $AZ_CLIENT_SECRET --tenant $AZ_TENANT_ID
         az account set --subscription $AZ_SUBSCRIPTION_ID
 
-        RESOURCE_GROUP="jks"
-        CLUSTER_NAME="jkspipeline"
+        # Variables
+        export RESOURCE_GROUP="jks"
+        export CLUSTER_NAME="jkspipeline"
 
-        # Check if AKS cluster exists or create it
-        echo "Checking if AKS cluster exists..."
-        if az aks show --resource-group $RESOURCE_GROUP --name $CLUSTER_NAME > /dev/null 2>&1; then
-          echo "Cluster '$CLUSTER_NAME' already exists."
-        else
-          echo "Creating AKS cluster '$CLUSTER_NAME'..."
+        # Create cluster if missing
+        if ! az aks show --resource-group $RESOURCE_GROUP --name $CLUSTER_NAME > /dev/null 2>&1; then
           az aks create \
             --resource-group $RESOURCE_GROUP \
             --name $CLUSTER_NAME \
@@ -146,27 +143,25 @@ stage('Create & Login to AKS Cluster') {
             --generate-ssh-keys
         fi
 
-        # Get credentials for AKS cluster
-        echo "Logging into AKS cluster '$CLUSTER_NAME'..."
-        az aks get-credentials --resource-group $RESOURCE_GROUP --name $CLUSTER_NAME --overwrite-existing
+        # Point both az and kubectl at the same kubeconfig file
+        export KUBECONFIG="$WORKSPACE/kubeconfig"
+        mkdir -p "$(dirname "$KUBECONFIG")"
 
-        # List available contexts to debug the issue
-        echo "Listing available contexts..."
+        # Merge credentials into our kubeconfig
+        az aks get-credentials \
+          --resource-group $RESOURCE_GROUP \
+          --name $CLUSTER_NAME \
+          --overwrite-existing \
+          --file "$KUBECONFIG"
+
+        # Verify it’s there
+        echo "Available contexts in $KUBECONFIG:"
         kubectl config get-contexts
 
-        # Try to get the context name explicitly and set it
-        CONTEXT_NAME=$(kubectl config get-contexts -o name | grep -m 1 "$CLUSTER_NAME" || true)
-        
-        if [ -z "$CONTEXT_NAME" ]; then
-          echo "Error: AKS context for cluster '$CLUSTER_NAME' not found!"
-          exit 1
-        fi
+        # Switch to the AKS context by name
+        kubectl config use-context "$CLUSTER_NAME"
 
-        echo "Using AKS context: $CONTEXT_NAME"
-        kubectl config use-context "$CONTEXT_NAME"
-
-        # Set namespace context
-        echo "Setting namespace context..."
+        # Finally set the namespace
         kubectl config set-context --current --namespace=default
       '''
     }
