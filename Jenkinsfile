@@ -10,7 +10,7 @@ pipeline {
 
     environment{
         ACR_NAME = "terraform999"
-        iMAGE_NAME = "petclinic"
+        IMAGE_NAME = "petclinic"
         BUILD_TAG = "v${BUILD_NUMBER}"
 
     }
@@ -74,7 +74,7 @@ pipeline {
 }
 
          stage('Build Docker Image') {
-            when { expression { params.RUN_STAGE == 'all' || params.RUN_STAGE == 'build' } }
+            when { expression { params.RUN_STAGE == 'all' || params.RUN_STAGE == 'login' } }
             steps{
                 echo "Docker Build"
                 sh """
@@ -103,9 +103,11 @@ pipeline {
     }
 
     stage('Tag and Push to ACR') {
+        when { expression { params.RUN_STAGE == 'all' || params.RUN_STAGE == 'login' } }
   steps {
     echo "pushing to ACR"
     sh '''
+      echo "Using tag: $IMAGE_NAME:$BUILD_TAG"
       docker tag $IMAGE_NAME:$BUILD_TAG $ACR_NAME.azurecr.io/$IMAGE_NAME:$BUILD_TAG
       docker push $ACR_NAME.azurecr.io/$IMAGE_NAME:$BUILD_TAG
     '''
