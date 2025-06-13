@@ -65,6 +65,14 @@ pipeline {
                 }
              }
         }
+                stage('Maven Package') {
+                    when { expression { params.RUN_STAGE == 'all' || params.RUN_STAGE == 'build' } }
+                    steps {
+                        echo "Packaging application into WAR"
+                        sh 'mvn package'
+    }
+}
+
          stage('Build Docker Image') {
             when { expression { params.RUN_STAGE == 'all' || params.RUN_STAGE == 'build' } }
             steps{
