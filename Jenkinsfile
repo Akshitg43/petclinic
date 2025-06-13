@@ -5,7 +5,7 @@ pipeline {
     }
 
     parameters {
-        choice(name: 'RUN_STAGE', choices: ['all', 'build', 'test', 'sonar', 'scan'], description: 'Which stage to run')
+        choice(name: 'RUN_STAGE', choices: ['all', 'build', 'test', 'sonar', 'scan', 'package', 'login'], description: 'Which stage to run')
     }
 
     environment{
@@ -66,7 +66,7 @@ pipeline {
              }
         }
                 stage('Maven Package') {
-                    when { expression { params.RUN_STAGE == 'all' || params.RUN_STAGE == 'build' } }
+                    when { expression { params.RUN_STAGE == 'all' || params.RUN_STAGE == 'package' } }
                     steps {
                         echo "Packaging application into WAR"
                         sh 'mvn package'
@@ -86,6 +86,7 @@ pipeline {
          } 
 
          stage('Login to ACR') {
+            when { expression { params.RUN_STAGE == 'all' || params.RUN_STAGE == 'login' } }
       steps {
            echo "ACR Login"
         withCredentials([
