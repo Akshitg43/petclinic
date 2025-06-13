@@ -5,7 +5,10 @@ FROM jetty:11-jdk17
 
 # Copy your WAR file into Jetty’s webapps directory
 #COPY target/${WAR_FILE} /var/lib/jetty/webapps/ROOT.war
+
 COPY target/petclinic.war /var/lib/jetty/webapps/ROOT.war
+
+
 
 
 
