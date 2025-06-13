@@ -128,7 +128,7 @@ stage('Create & Login to AKS Cluster') {
         az login --service-principal -u $AZ_CLIENT_ID -p $AZ_CLIENT_SECRET --tenant $AZ_TENANT_ID
         az account set --subscription $AZ_SUBSCRIPTION_ID
 
-        RESOURCE_GROUP="myResourceGroup"
+        RESOURCE_GROUP="jks"
         CLUSTER_NAME="jkspipeline"
 
         echo "Checking if AKS cluster exists..."
