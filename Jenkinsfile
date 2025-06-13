@@ -150,20 +150,20 @@ stage('Create & Login to AKS Cluster') {
         echo "Logging into AKS cluster '$CLUSTER_NAME'..."
         az aks get-credentials --resource-group $RESOURCE_GROUP --name $CLUSTER_NAME --overwrite-existing
 
-        # Ensure the correct context is selected
+        # List available contexts to debug the issue
         echo "Listing available contexts..."
         kubectl config get-contexts
 
-        # Select the context that corresponds to the AKS cluster
-        CONTEXT_NAME=$(kubectl config get-contexts -o name | grep $CLUSTER_NAME)
+        # Try to get the context name explicitly and set it
+        CONTEXT_NAME=$(kubectl config get-contexts -o name | grep -m 1 "$CLUSTER_NAME" || true)
         
         if [ -z "$CONTEXT_NAME" ]; then
-          echo "Error: AKS context '$CLUSTER_NAME' not found!"
+          echo "Error: AKS context for cluster '$CLUSTER_NAME' not found!"
           exit 1
         fi
 
         echo "Using AKS context: $CONTEXT_NAME"
-        kubectl config use-context $CONTEXT_NAME
+        kubectl config use-context "$CONTEXT_NAME"
 
         # Set namespace context
         echo "Setting namespace context..."
