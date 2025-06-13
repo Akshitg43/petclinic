@@ -12,8 +12,7 @@ pipeline {
         ACR_NAME = "terraform999"
         IMAGE_NAME = "petclinic"
         BUILD_TAG = "v${BUILD_NUMBER}"
-        // ← make every kubectl point here
-  KUBECONFIG = "${env.WORKSPACE}/kubeconfig"
+        KUBECONFIG = "${env.WORKSPACE}/kubeconfig"
 
     }
     stages {
