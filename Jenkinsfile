@@ -11,7 +11,7 @@ pipeline {
     environment{
         ACR_NAME = "terraform999"
         iMAGE_NAME = "petclinic"
-        BUILD_TAG = "v${BUILD_NUMBER}"
+        BUILD_TAG = "pet${BUILD_NUMBER}"
 
     }
     stages {
