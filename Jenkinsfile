@@ -169,7 +169,7 @@ stage('Create ACR Secret in AKS') {
             --docker-server=terraform999.azurecr.io \
             --docker-username=$AZ_CLIENT_ID \
             --docker-password=$AZ_CLIENT_SECRET \
-            --docker-email=you@example.com
+            --docker-email=Akshitg43@gmail.com
         else
           echo "acr-auth secret already exists"
         fi
