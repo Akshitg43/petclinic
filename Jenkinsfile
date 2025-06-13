@@ -70,7 +70,7 @@ pipeline {
             steps{
                 echo "Docker Build"
                 sh """
-                    sh docker build --build-arg WAR_FILE=petclinic.war -t $IMAGE_NAME:$BUILD_TAG .
+                     docker build --build-arg WAR_FILE=petclinic.war -t $IMAGE_NAME:$BUILD_TAG .
 
                 """
           }
