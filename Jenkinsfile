@@ -154,9 +154,16 @@ stage('Create & Login to AKS Cluster') {
         echo "Listing available contexts..."
         kubectl config get-contexts
 
-        # Set the Kubernetes context explicitly
-        echo "Setting the Kubernetes context..."
-        kubectl config use-context $(kubectl config get-contexts -o name | grep $CLUSTER_NAME)
+        # Select the context that corresponds to the AKS cluster
+        CONTEXT_NAME=$(kubectl config get-contexts -o name | grep $CLUSTER_NAME)
+        
+        if [ -z "$CONTEXT_NAME" ]; then
+          echo "Error: AKS context '$CLUSTER_NAME' not found!"
+          exit 1
+        fi
+
+        echo "Using AKS context: $CONTEXT_NAME"
+        kubectl config use-context $CONTEXT_NAME
 
         # Set namespace context
         echo "Setting namespace context..."
