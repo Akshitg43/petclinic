@@ -3,6 +3,11 @@ pipeline {
     tools {
         maven 'maven'
     }
+
+    parameters {
+        choice(name: 'RUN_STAGE', choices: ['all', 'build', 'test', 'sonar', 'scan'], description: 'Which stage to run')
+    }
+
     environment{
         ACR_NAME = "terraform999"
         iMAGE_NAME = "PETCLINIC"
@@ -59,7 +64,7 @@ pipeline {
             steps{
                 echo "Docker Build"
                 sh """
-                    docker build -t $IMAGE_NAME:$BUILD_TAG
+                    docker build -t $IMAGE_NAME:$BUILD_TAG .
                 """
           }
          }   
