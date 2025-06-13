@@ -3,6 +3,12 @@ pipeline {
     tools {
         maven 'maven'
     }
+    environment{
+        ACR_NAME = "terraform999"
+        iMAGE_NAME = "PETCLINIC"
+        BUILD_TAG = "V${BUILD_NUMBER}"
+
+    }
     stages {
         stage('Checkout From Git') {
             steps {
@@ -48,16 +54,14 @@ pipeline {
                     '''
                 }
              }
-            }
-            stage('Quality Gate') {
-                    steps {
-                        echo "Qaulity gate"
-                        timeout(time: 2, unit: 'MINUTES') {
-                        waitForQualityGate abortPipeline: true
-                        
-                    }        
-                }
-            }
         }
-}                        
-    
+         Stage('Build Docker Image') {
+            steps{
+                echo "Docker Build"
+                sh """
+                    docker build -t $IMAGE_NAME:$BUILD_TAG
+                """
+          }
+         }   
+        }
+       }                        
