@@ -165,6 +165,7 @@ stage('Create ACR Secret in AKS') {
       sh '''
         if ! kubectl get secret acr-auth >/dev/null 2>&1; then
           echo "Creating acr-auth secret..."
+          kubectl config set-context --current --namespace=jenkins
           kubectl create secret docker-registry acr-auth \
             --docker-server=terraform999.azurecr.io \
             --docker-username=$AZ_CLIENT_ID \
