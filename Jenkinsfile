@@ -102,5 +102,15 @@ pipeline {
       }
     }
 
+    stage('Tag and Push to ACR') {
+  steps {
+    echo "pushing to ACR"
+    sh '''
+      docker tag $IMAGE_NAME:$BUILD_TAG $ACR_NAME.azurecr.io/$IMAGE_NAME:$BUILD_TAG
+      docker push $ACR_NAME.azurecr.io/$IMAGE_NAME:$BUILD_TAG
+    '''
+  }
+}
+
         }
        }                        
