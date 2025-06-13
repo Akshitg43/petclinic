@@ -115,7 +115,7 @@ pipeline {
 }
 
 stage('Create & Login to AKS Cluster') {
-  when { expression { params.RUN_STAGE == 'all' || params.RUN_STAGE == 'aks' } }
+  when { expression { params.RUN_STAGE == 'all' || params.RUN_STAGE == 'deploy' } }
   steps {
     echo "Checking/Creating and Logging into AKS Cluster: jkspipeline"
     withCredentials([
