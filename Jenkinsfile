@@ -83,6 +83,23 @@ pipeline {
 
                 """
           }
-         }   
+         } 
+
+         stage('Login to ACR') {
+      steps {
+           echo "ACR Login"
+        withCredentials([
+          string(credentialsId: 'AZURE_CLIENT_ID', variable: 'AZ_CLIENT_ID'),
+          string(credentialsId: 'AZURE_CLIENT_SECRET', variable: 'AZ_CLIENT_SECRET'),
+          string(credentialsId: 'AZURE_TENANT_ID', variable: 'AZ_TENANT_ID')
+        ]) {
+          sh '''
+            az login --service-principal -u $AZ_CLIENT_ID -p $AZ_CLIENT_SECRET --tenant $AZ_TENANT_ID
+            az acr login --name $ACR_NAME
+          '''
+        }
+      }
+    }
+
         }
        }                        
