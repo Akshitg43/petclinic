@@ -10,29 +10,33 @@ pipeline {
 
     environment{
         ACR_NAME = "terraform999"
-        iMAGE_NAME = "PETCLINIC"
-        BUILD_TAG = "V${BUILD_NUMBER}"
+        iMAGE_NAME = "petclinic"
+        BUILD_TAG = "v${BUILD_NUMBER}"
 
     }
     stages {
         stage('Checkout From Git') {
+            when { expression { params.RUN_STAGE == 'all' || params.RUN_STAGE == 'build' || params.RUN_STAGE == 'test' || params.RUN_STAGE == 'sonar' || params.RUN_STAGE == 'scan' } }
             steps {
                 git branch: 'prod', url: 'https://github.com/bkrrajmali/enahanced-petclinc-springboot.git'
             }
         }
         stage('Maven Compile') {
+            when { expression { params.RUN_STAGE == 'all' || params.RUN_STAGE == 'build' || params.RUN_STAGE == 'test' } }
             steps {
                 echo "This is Maven Compile Stage"
                 sh "mvn compile"
             }
         }
         stage('Maven Test') {
+            when { expression { params.RUN_STAGE == 'all' || params.RUN_STAGE == 'test' } }
             steps {
                 echo "This is Maven Test Stage"
                 sh "mvn test"
             }
         }
         stage('File Scanning by Trivy') {
+            when { expression { params.RUN_STAGE == 'all' || params.RUN_STAGE == 'scan' } }
             steps {
                 echo "Trivy Scanning"
                 sh '''
@@ -45,6 +49,7 @@ pipeline {
             }
         }
         stage('Sonar Scanning') {
+            when { expression { params.RUN_STAGE == 'all' || params.RUN_STAGE == 'sonar' } }
             steps {
                 echo "Sonar scanning"
                 withSonarQubeEnv('sonar-server') {
@@ -61,6 +66,7 @@ pipeline {
              }
         }
          stage('Build Docker Image') {
+            when { expression { params.RUN_STAGE == 'all' || params.RUN_STAGE == 'build' } }
             steps{
                 echo "Docker Build"
                 sh """
