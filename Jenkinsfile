@@ -150,6 +150,10 @@ stage('Create & Login to AKS Cluster') {
         echo "Logging into AKS cluster '$CLUSTER_NAME'..."
         az aks get-credentials --resource-group $RESOURCE_GROUP --name $CLUSTER_NAME --overwrite-existing
 
+        # Ensure the correct context is selected
+        echo "Listing available contexts..."
+        kubectl config get-contexts
+
         # Set the Kubernetes context explicitly
         echo "Setting the Kubernetes context..."
         kubectl config use-context $(kubectl config get-contexts -o name | grep $CLUSTER_NAME)
