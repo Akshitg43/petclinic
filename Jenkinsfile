@@ -36,7 +36,7 @@ pipeline {
         stage('Sonar Scanning') {
             steps {
                 echo "Sonar scanning"
-                withSonarQubeEnv('sonar-pw') {
+                withSonarQubeEnv('sonar-server') {
                     sh '''
                         sonar-scanner \
                         -Dsonar.projectKey=akscluster_petclinic-jks \
