@@ -115,13 +115,11 @@ pipeline {
 }
 
 stage('Create & Login to AKS Cluster') {
-  when { expression { params.RUN_STAGE == 'all' || params.RUN_STAGE == 'deploy' } }
+  when { expression { params.RUN_STAGE in ['all','deploy'] } }
   environment {
-    // Force kubectl to read/write only this file
     KUBECONFIG = "${env.WORKSPACE}/kubeconfig"
   }
   steps {
-    echo "Checking/Creating and Logging into AKS Cluster: jkspipeline"
     withCredentials([
       string(credentialsId: 'AZURE_CLIENT_ID',       variable: 'AZ_CLIENT_ID'),
       string(credentialsId: 'AZURE_CLIENT_SECRET',   variable: 'AZ_CLIENT_SECRET'),
@@ -129,49 +127,41 @@ stage('Create & Login to AKS Cluster') {
       string(credentialsId: 'AZURE_SUBSCRIPTION_ID', variable: 'AZ_SUBSCRIPTION_ID')
     ]) {
       sh '''
-        # Azure login
-        az login --service-principal \
-          -u $AZ_CLIENT_ID -p $AZ_CLIENT_SECRET \
-          --tenant $AZ_TENANT_ID
-
+        az login --service-principal -u $AZ_CLIENT_ID -p $AZ_CLIENT_SECRET --tenant $AZ_TENANT_ID
         az account set --subscription $AZ_SUBSCRIPTION_ID
 
         RESOURCE_GROUP="jks"
         CLUSTER_NAME="jkspipeline"
 
-        # Create cluster if missing
-        if ! az aks show --resource-group $RESOURCE_GROUP --name $CLUSTER_NAME &>/dev/null; then
+        # POSIX‐style redirection so sh can parse it
+        if ! az aks show --resource-group $RESOURCE_GROUP --name $CLUSTER_NAME > /dev/null 2>&1; then
+          echo "Cluster not found; creating..."
           az aks create \
             --resource-group $RESOURCE_GROUP \
             --name $CLUSTER_NAME \
             --node-count 1 \
             --enable-addons monitoring \
             --generate-ssh-keys
+        else
+          echo "Cluster '$CLUSTER_NAME' already exists; skipping create."
         fi
 
-        # Ensure our kubeconfig file exists
         mkdir -p "$(dirname "$KUBECONFIG")"
-
-        # Write the credentials into $KUBECONFIG
         az aks get-credentials \
           --resource-group $RESOURCE_GROUP \
           --name $CLUSTER_NAME \
           --overwrite-existing \
           --file "$KUBECONFIG"
 
-        # Verify
         echo "Contexts in $KUBECONFIG:"
         kubectl config get-contexts
-
-        # Switch to the AKS one
         kubectl config use-context "$CLUSTER_NAME"
-
-        # Finally set namespace
         kubectl config set-context --current --namespace=default
       '''
     }
   }
 }
+
 
 stage('Create ACR Secret in AKS') {
   when { expression { params.RUN_STAGE == 'all' || params.RUN_STAGE == 'deploy' } }
