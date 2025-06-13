@@ -5,7 +5,7 @@ pipeline {
     }
 
     parameters {
-        choice(name: 'RUN_STAGE', choices: ['all', 'build', 'test', 'sonar', 'scan', 'package', 'login'], description: 'Which stage to run')
+        choice(name: 'RUN_STAGE', choices: ['all', 'build', 'test', 'sonar', 'scan', 'package', 'login', 'aks'], description: 'Which stage to run')
     }
 
     environment{
@@ -111,6 +111,43 @@ pipeline {
       docker tag $IMAGE_NAME:$BUILD_TAG $ACR_NAME.azurecr.io/$IMAGE_NAME:$BUILD_TAG
       docker push $ACR_NAME.azurecr.io/$IMAGE_NAME:$BUILD_TAG
     '''
+  }
+}
+
+stage('Create & Login to AKS Cluster') {
+  when { expression { params.RUN_STAGE == 'all' || params.RUN_STAGE == 'aks' } }
+  steps {
+    echo "Checking/Creating and Logging into AKS Cluster: jkspipeline"
+    withCredentials([
+      string(credentialsId: 'AZURE_CLIENT_ID', variable: 'AZ_CLIENT_ID'),
+      string(credentialsId: 'AZURE_CLIENT_SECRET', variable: 'AZ_CLIENT_SECRET'),
+      string(credentialsId: 'AZURE_TENANT_ID', variable: 'AZ_TENANT_ID'),
+      string(credentialsId: 'AZURE_SUBSCRIPTION_ID', variable: 'AZ_SUBSCRIPTION_ID')
+    ]) {
+      sh '''
+        az login --service-principal -u $AZ_CLIENT_ID -p $AZ_CLIENT_SECRET --tenant $AZ_TENANT_ID
+        az account set --subscription $AZ_SUBSCRIPTION_ID
+
+        RESOURCE_GROUP="myResourceGroup"
+        CLUSTER_NAME="jkspipeline"
+
+        echo "Checking if AKS cluster exists..."
+        if az aks show --resource-group $RESOURCE_GROUP --name $CLUSTER_NAME > /dev/null 2>&1; then
+          echo "Cluster '$CLUSTER_NAME' already exists."
+        else
+          echo "Creating AKS cluster '$CLUSTER_NAME'..."
+          az aks create \
+            --resource-group $RESOURCE_GROUP \
+            --name $CLUSTER_NAME \
+            --node-count 1 \
+            --enable-addons monitoring \
+            --generate-ssh-keys
+        fi
+
+        echo "Logging into AKS cluster '$CLUSTER_NAME'..."
+        az aks get-credentials --resource-group $RESOURCE_GROUP --name $CLUSTER_NAME --overwrite-existing
+      '''
+    }
   }
 }
 
