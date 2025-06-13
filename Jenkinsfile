@@ -163,9 +163,17 @@ stage('Create ACR Secret in AKS') {
       string(credentialsId: 'AZURE_CLIENT_SECRET', variable: 'AZ_CLIENT_SECRET')
     ]) {
       sh '''
-        if ! kubectl get secret acr-auth >/dev/null 2>&1; then
+         echo "Logging into AKS cluster..."
+        az aks get-credentials --resource-group jks --name jkspipeline --overwrite-existing
+
+        echo "Setting namespace context..."
+        kubectl config set-context --current --namespace=default
+
+        echo "Checking if secret exists..."
+         if ! kubectl get secret acr-auth >/dev/null 2>&1; then
           echo "Creating acr-auth secret..."
-          kubectl config set-context --current --namespace=jenkins
+          else
+          echo "Creating acr-auth secret..."
           kubectl create secret docker-registry acr-auth \
             --docker-server=terraform999.azurecr.io \
             --docker-username=$AZ_CLIENT_ID \
