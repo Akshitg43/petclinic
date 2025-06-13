@@ -49,7 +49,7 @@ pipeline {
                 }
              }
             }
-        }    stage("Quality Gate") {
+            stage('Quality Gate') {
                     steps {
                         echo "Qaulity gate"
                         timeout(time: 2, unit: 'MINUTES') {
