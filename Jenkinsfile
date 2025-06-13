@@ -187,7 +187,7 @@ stage('Deploy to AKS') {
           fi
 
           echo "Injecting image tag: $IMAGE_TAG"
-          sed "s|__IMAGE_TAG__|$IMAGE_TAG|g" k8s/deployment.yaml > k8s/sprinboot-deployment.yaml
+          sed "s|__IMAGE_TAG__|$IMAGE_TAG|g" k8s/sprinboot-deployment.yaml > k8s/sprinboot-deployment.yaml
 
           echo "Deploying application to AKS..."
           kubectl apply -f k8s/sprinboot-deployment.yaml
