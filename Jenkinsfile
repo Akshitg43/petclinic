@@ -47,6 +47,7 @@ pipeline {
                         -Dsonar.exclusions=**/trivy-report.txt
                     '''
                 }
+             }
             }
         }    stage("Quality Gate") {
                     steps {
@@ -58,4 +59,4 @@ pipeline {
                 }
             }
         }                       
-    }
+    
