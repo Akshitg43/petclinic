@@ -14,7 +14,7 @@ pipeline {
         BUILD_TAG = "v${BUILD_NUMBER}"
         
         // ← this makes ALL kubectl use WORKSPACE/kubeconfig
-        KUBECONFIG = "${env.WORKSPACE}/kubeconfig"
+        KUBECONFIG = "/kubeconfig"
 
     }
     stages {
