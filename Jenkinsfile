@@ -116,29 +116,6 @@ pipeline {
 }
 
 stage('Create ACR Secret in AKS') {
-  when { expression { params.RUN_STAGE in ['all','deploy'] } }
-  steps {
-    withCredentials([
-      string(credentialsId: 'AZURE_CLIENT_ID',     variable: 'AZ_CLIENT_ID'),
-      string(credentialsId: 'AZURE_CLIENT_SECRET', variable: 'AZ_CLIENT_SECRET')
-    ]) {
-      sh '''
-        echo "Current context: $(kubectl config current-context)"
-        if ! kubectl get secret acr-auth &>/dev/null; then
-          kubectl create secret docker-registry acr-auth \
-            --docker-server=${ACR_NAME}.azurecr.io \
-            --docker-username=$AZ_CLIENT_ID \
-            --docker-password=$AZ_CLIENT_SECRET \
-            --docker-email=Akshitg43@gmail.com
-        else
-          echo "acr-auth already exists"
-        fi
-      '''
-    }
-  }
-}
-
-stage('Create ACR Secret in AKS') {
   when { expression { params.RUN_STAGE == 'all' || params.RUN_STAGE == 'deploy' } }
   steps {
     echo "Creating ACR secret in AKS if not exists"
