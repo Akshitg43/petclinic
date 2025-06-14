@@ -12,6 +12,7 @@ pipeline {
         ACR_NAME = "terraform999"
         IMAGE_NAME = "petclinic"
         BUILD_TAG = "v${BUILD_NUMBER}"
+        KUBECONFIG = "${env.WORKSPACE}/kubeconfig"
 
     }
     stages {
@@ -114,54 +115,28 @@ pipeline {
   }
 }
 
-stage('Create & Login to AKS Cluster') {
+stage('Create ACR Secret in AKS') {
   when { expression { params.RUN_STAGE in ['all','deploy'] } }
-  environment {
-    KUBECONFIG = "${env.WORKSPACE}/kubeconfig"
-  }
   steps {
     withCredentials([
-      string(credentialsId: 'AZURE_CLIENT_ID',       variable: 'AZ_CLIENT_ID'),
-      string(credentialsId: 'AZURE_CLIENT_SECRET',   variable: 'AZ_CLIENT_SECRET'),
-      string(credentialsId: 'AZURE_TENANT_ID',       variable: 'AZ_TENANT_ID'),
-      string(credentialsId: 'AZURE_SUBSCRIPTION_ID', variable: 'AZ_SUBSCRIPTION_ID')
+      string(credentialsId: 'AZURE_CLIENT_ID',     variable: 'AZ_CLIENT_ID'),
+      string(credentialsId: 'AZURE_CLIENT_SECRET', variable: 'AZ_CLIENT_SECRET')
     ]) {
       sh '''
-        az login --service-principal -u $AZ_CLIENT_ID -p $AZ_CLIENT_SECRET --tenant $AZ_TENANT_ID
-        az account set --subscription $AZ_SUBSCRIPTION_ID
-
-        RESOURCE_GROUP="jks"
-        CLUSTER_NAME="jkspipeline"
-
-        # POSIX‐style redirection so sh can parse it
-        if ! az aks show --resource-group $RESOURCE_GROUP --name $CLUSTER_NAME > /dev/null 2>&1; then
-          echo "Cluster not found; creating..."
-          az aks create \
-            --resource-group $RESOURCE_GROUP \
-            --name $CLUSTER_NAME \
-            --node-count 1 \
-            --enable-addons monitoring \
-            --generate-ssh-keys
+        echo "Current context: $(kubectl config current-context)"
+        if ! kubectl get secret acr-auth &>/dev/null; then
+          kubectl create secret docker-registry acr-auth \
+            --docker-server=${ACR_NAME}.azurecr.io \
+            --docker-username=$AZ_CLIENT_ID \
+            --docker-password=$AZ_CLIENT_SECRET \
+            --docker-email=Akshitg43@gmail.com
         else
-          echo "Cluster '$CLUSTER_NAME' already exists; skipping create."
+          echo "acr-auth already exists"
         fi
-
-        mkdir -p "$(dirname "$KUBECONFIG")"
-        az aks get-credentials \
-          --resource-group $RESOURCE_GROUP \
-          --name $CLUSTER_NAME \
-          --overwrite-existing \
-          --file "$KUBECONFIG"
-
-        echo "Contexts in $KUBECONFIG:"
-        kubectl config get-contexts
-        kubectl config use-context "$CLUSTER_NAME"
-        kubectl config set-context --current --namespace=default
       '''
     }
   }
 }
-
 
 stage('Create ACR Secret in AKS') {
   when { expression { params.RUN_STAGE == 'all' || params.RUN_STAGE == 'deploy' } }
