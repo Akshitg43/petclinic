@@ -12,6 +12,8 @@ pipeline {
         ACR_NAME = "terraform999"
         IMAGE_NAME = "petclinic"
         BUILD_TAG = "v${BUILD_NUMBER}"
+        
+        // ← this makes ALL kubectl use WORKSPACE/kubeconfig
         KUBECONFIG = "${env.WORKSPACE}/kubeconfig"
 
     }
@@ -116,30 +118,22 @@ pipeline {
 }
 
 stage('Create ACR Secret in AKS') {
-  when { expression { params.RUN_STAGE == 'all' || params.RUN_STAGE == 'deploy' } }
+  when { expression { params.RUN_STAGE in ['all','deploy'] } }
   steps {
-    echo "Creating ACR secret in AKS if not exists"
-    withCredentials([ 
-      string(credentialsId: 'AZURE_CLIENT_ID', variable: 'AZ_CLIENT_ID'),
+    withCredentials([
+      string(credentialsId: 'AZURE_CLIENT_ID',     variable: 'AZ_CLIENT_ID'),
       string(credentialsId: 'AZURE_CLIENT_SECRET', variable: 'AZ_CLIENT_SECRET')
     ]) {
       sh '''
-        echo "Logging into AKS cluster..."
-        az aks get-credentials --resource-group jks --name jkspipeline --overwrite-existing
-
-        echo "Setting namespace context..."
-        kubectl config set-context --current --namespace=default
-
-        echo "Checking if secret exists..."
-        if ! kubectl get secret acr-auth >/dev/null 2>&1; then
-          echo "Creating acr-auth secret..."
+        echo "Current context: $(kubectl config current-context)"
+        if ! kubectl get secret acr-auth &> /dev/null; then
           kubectl create secret docker-registry acr-auth \
-            --docker-server=terraform999.azurecr.io \
+            --docker-server=${ACR_NAME}.azurecr.io \
             --docker-username=$AZ_CLIENT_ID \
             --docker-password=$AZ_CLIENT_SECRET \
             --docker-email=Akshitg43@gmail.com
         else
-          echo "acr-auth secret already exists"
+          echo "acr-auth already exists"
         fi
       '''
     }
@@ -147,49 +141,20 @@ stage('Create ACR Secret in AKS') {
 }
 
 stage('Deploy to AKS') {
-  when { expression { params.RUN_STAGE == 'all' || params.RUN_STAGE == 'deploy' } }
+  when { expression { params.RUN_STAGE in ['all','deploy'] } }
   steps {
-    echo "Deploying to AKS if not already deployed"
-    withCredentials([
-      string(credentialsId: 'AZURE_CLIENT_ID', variable: 'AZ_CLIENT_ID'),
-      string(credentialsId: 'AZURE_CLIENT_SECRET', variable: 'AZ_CLIENT_SECRET'),
-      string(credentialsId: 'AZURE_TENANT_ID', variable: 'AZ_TENANT_ID'),
-      string(credentialsId: 'AZURE_SUBSCRIPTION_ID', variable: 'AZ_SUBSCRIPTION_ID')
-    ]) {
-      sh '''
-        RESOURCE_GROUP="jks"
-        CLUSTER_NAME="jkspipeline"
-        ACR_NAME="terraform999"
-        IMAGE_REPO="petclinic"
+    sh '''
+      echo "Deploying with context: $(kubectl config current-context)"
+      IMAGE_TAG=$(az acr repository show-tags \
+        --name $ACR_NAME \
+        --repository $IMAGE_NAME \
+        --orderby time_desc --output tsv | head -n1)
 
-        echo "Logging into Azure..."
-        az login --service-principal -u $AZ_CLIENT_ID -p $AZ_CLIENT_SECRET --tenant $AZ_TENANT_ID
-        az account set --subscription $AZ_SUBSCRIPTION_ID
+      sed "s|__IMAGE_TAG__|$IMAGE_TAG|g" k8s/sprinboot-deployment.yaml \
+        > k8s/sprinboot-deployment-final.yaml
 
-        echo "Ensuring AKS cluster context is set..."
-        az aks get-credentials --resource-group $RESOURCE_GROUP --name $CLUSTER_NAME --overwrite-existing
-
-        echo "Checking if Kubernetes deployment 'springboot-app' exists..."
-        if kubectl get deployment springboot-app > /dev/null 2>&1; then
-          echo "Deployment 'springboot-app' already exists. Skipping deployment."
-        else
-          echo "Fetching latest image tag from ACR..."
-          IMAGE_TAG=$(az acr repository show-tags --name $ACR_NAME --repository $IMAGE_REPO --orderby time_desc --output tsv | head -n 1)
-
-          if [ -z "$IMAGE_TAG" ]; then
-            echo "ERROR: No image tags found in ACR for $IMAGE_REPO"
-            exit 1
-          fi
-
-          echo "Injecting image tag: $IMAGE_TAG"
-          sed "s|__IMAGE_TAG__|$IMAGE_TAG|g" k8s/sprinboot-deployment.yaml > k8s/sprinboot-deployment-final.yaml
-
-          echo "Deploying application to AKS..."
-          kubectl apply -f k8s/sprinboot-deployment-final.yaml
-        fi
-      '''
-    }
+      kubectl apply -f k8s/sprinboot-deployment-final.yaml
+    '''
   }
 }
-        }
-}             
+                
